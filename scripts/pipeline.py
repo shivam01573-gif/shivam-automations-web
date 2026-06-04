@@ -171,8 +171,8 @@ def query_groq_for_sop(extracted_json, thread_title):
         f"2. Overview (H2): Context on the software systems involved and the pain point.\n"
         f"3. Error Diagnostic (H2): Detailed breakdown of why this API / integration fails.\n"
         f"4. Step-by-Step Resolution (H2): Clear, actionable H3 steps to configure, build, and resolve the error using Make.com/Zapier/custom script, and how to verify.\n"
-        f"5. Next Steps (H2): A brief wrap-up advising the reader to skip the manual setup and deploy the flow directly using Make.com (using the affiliate link: https://www.make.com/en/register?pc=shivamautomations).\n\n"
-        f"Add an FAQ schema using JSON-LD block inside a script tag at the bottom.\n"
+        f"5. Next Steps (H2): A brief wrap-up advising the reader to skip the manual setup and deploy the flow directly using Make.com (using the affiliate link: https://www.make.com/en/register?pc=shivamautomations).\n"
+        f"6. Frequently Asked Questions (H2): Add 2-3 common questions and answers in plain text markdown format. Do NOT use any script tags, JSON-LD, or raw HTML blocks.\n\n"
         f"Do not write conversational introduction or summary outside of the Markdown article."
     )
     

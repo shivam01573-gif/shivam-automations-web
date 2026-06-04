@@ -25,6 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth">
+      <head>
+        <meta name="impact-site-verification" value="6b4d9bd4-3824-4dfd-979e-738919ccb40c" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-indigo-500 selection:text-white`}>
         {children}
       </body>

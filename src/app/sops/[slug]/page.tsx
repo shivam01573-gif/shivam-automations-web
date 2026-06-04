@@ -31,6 +31,12 @@ export default async function SOPPage({ params }: PageProps) {
     // Remove schema script from markdown to prevent rendering issues or double injection
     markdown = markdown.replace(scriptRegex, "");
   }
+
+  // Remove "Professional Call-To-Action" section and everything after it since we render a custom visual CTA banner
+  const ctaIndex = markdown.search(/##\s+(Professional\s+)?Call-To-Action/i);
+  if (ctaIndex !== -1) {
+    markdown = markdown.substring(0, ctaIndex).trim();
+  }
   
   // Parse H1 Title and remove it from markdown content (since we'll render it custom)
   const titleMatch = markdown.match(/^#\s+(.+)$/m);

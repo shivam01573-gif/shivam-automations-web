@@ -41,15 +41,24 @@ This file serves as a permanent context store. If the IDE chat history is cleare
 - [scripts/pipeline.py](file:///d:/AI%20automation/affilate web/scripts/pipeline.py) - Main pipeline script. Fetches recent Make forum RSS feeds, scrapes posts, calls Groq (Llama 3) to analyze errors and write solutions, saves them to `content/sops/`, pushes to Github, publishes to Dev.to, and automatically generates Pinterest Graphic Pins.
 - [scripts/publish_devto.py](file:///d:/AI%20automation/affilate web/scripts/publish_devto.py) - Helper module that makes POST requests to `https://dev.to/api/articles` with API key headers. Injects canonical URLs back to the Vercel site to transfer domain authority (SEO link juice).
 - [scripts/pinterest_generator.py](file:///d:/AI%20automation/affilate web/scripts/pinterest_generator.py) - Programmatic graphic design script that draws premium 1000x1500px Pinterest Pins with typography, borders, and branding for each SOP.
+- [scripts/install_startup.py](file:///d:/AI%20automation/affilate web/scripts/install_startup.py) - Windows utility that registers a silent VBScript in the Windows Startup Folder so that the pipeline runs completely in the background on PC logon.
+- [run_pipeline.bat](file:///d:/AI%20automation/affilate web/run_pipeline.bat) - Helper batch script executed by the startup script. It triggers the python pipeline and appends outputs to `pipeline_run.log`.
 
 ---
 
-## 🛠️ How to run the Pipeline locally
+## 🛠️ Running the Pipeline & Auto-Run Status
 
+### How to Run Manually:
 To fetch new threads, generate SOPs, build the website, publish to Dev.to, and create Pinterest graphics automatically, run this command in PowerShell:
 ```powershell
 py scripts/pipeline.py
 ```
+
+### Silent Auto-Run on PC Boot/Logon:
+The system is configured to run **automatically and silently** in the background every time your PC turns on and you log in. 
+- It creates a background process (no CMD window popup) that executes `run_pipeline.bat`.
+- It appends all execution status and outputs to `pipeline_run.log` in the project root.
+- Deduplication logic ensures it takes <3 seconds and makes 0 duplicate posts if no new forum threads are found.
 
 ---
 

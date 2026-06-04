@@ -11,6 +11,7 @@ from groq import Groq
 from github import Github, GithubException
 from dotenv import load_dotenv
 from publish_devto import publish_to_devto
+from pinterest_generator import generate_pinterest_pin
 
 # Force UTF-8 stdout encoding on Windows to prevent UnicodeEncodeError with emojis
 if sys.platform.startswith("win"):
@@ -191,7 +192,7 @@ def publish_to_github(filename, content):
         return False
         
     # Example Github repo setup, fallback to placeholder
-    repo_name = "shivam-automations/shivam-automations-web" # Customize to your repo
+    repo_name = "shivam01573-gif/shivam-automations-web" # Customize to your repo
     print(f"[*] Attempting to push {filename} to GitHub repo: {repo_name}...")
     try:
         g = Github(GITHUB_PAT)
@@ -296,6 +297,25 @@ def run_pipeline():
             publish_to_devto(title, sop_markdown, tags)
         except Exception as e:
             print(f"[!] Failed to auto-publish to Dev.to: {e}")
+            
+        # Step 7: Generate Pinterest Graphic Pin
+        try:
+            pin_dir = os.path.join(os.path.dirname(__file__), "..", "public", "pins")
+            pin_filename = f"{clean_title}-pin.png"
+            pin_file_path = os.path.join(pin_dir, pin_filename)
+            
+            # Detect tool name from clean title
+            tool_name = "Make.com"
+            if "monday" in clean_title.lower():
+                tool_name = "Monday.com"
+            elif "clay" in clean_title.lower():
+                tool_name = "Clay"
+            elif "hubspot" in clean_title.lower():
+                tool_name = "Hubspot"
+                
+            generate_pinterest_pin(title, pin_file_path, tool_name)
+        except Exception as e:
+            print(f"[!] Failed to generate Pinterest pin graphic: {e}")
         
         # Mark as processed
         mark_processed(url, title)

@@ -10,6 +10,7 @@ import google.generativeai as genai
 from groq import Groq
 from github import Github, GithubException
 from dotenv import load_dotenv
+from publish_devto import publish_to_devto
 
 # Force UTF-8 stdout encoding on Windows to prevent UnicodeEncodeError with emojis
 if sys.platform.startswith("win"):
@@ -284,6 +285,17 @@ def run_pipeline():
         
         # Step 5: Publish to GitHub Pages repo
         publish_to_github(filename, sop_markdown)
+        
+        # Step 6: Publish to Dev.to automatically for Parasite SEO Traffic
+        try:
+            tags = ["automation", "make", "api"]
+            if "jotform" in clean_title:
+                tags.append("jotform")
+            if "arcgis" in clean_title:
+                tags.append("arcgis")
+            publish_to_devto(title, sop_markdown, tags)
+        except Exception as e:
+            print(f"[!] Failed to auto-publish to Dev.to: {e}")
         
         # Mark as processed
         mark_processed(url, title)

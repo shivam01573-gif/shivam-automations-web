@@ -1,61 +1,85 @@
-"use client";
-
 import React, { Suspense } from "react";
-import dynamic from "next/dynamic";
+import fs from "fs";
+import path from "path";
 import { 
   ArrowRight, ShieldAlert, Cpu, Sparkles, CheckCircle2, 
   ExternalLink, Layers, Terminal, Zap, BookOpen, AlertTriangle 
 } from "lucide-react";
 import PipelineSimulator from "@/components/PipelineSimulator";
+import SplineViewer from "@/components/SplineViewer";
 
-// Lazy-load SplineViewer dynamically to prevent blocking initial load (Core Web Vitals LCP optimization)
-const SplineViewer = dynamic(() => import("@/components/SplineViewer"), {
-  ssr: false,
-  loading: () => (
-    <div className="relative w-full h-[350px] sm:h-[450px] md:h-[500px] lg:h-[600px] rounded-2xl overflow-hidden border border-white/5 bg-slate-900/30 backdrop-blur-md flex flex-col items-center justify-center">
-      <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-      <p className="mt-4 text-xs text-slate-400 font-mono tracking-widest uppercase animate-pulse">
-        Loading 3D Data Pipeline Model...
-      </p>
-    </div>
-  )
-});
+interface SOP {
+  id: string;
+  title: string;
+  description: string;
+  tools: string[];
+  affiliateLink: string;
+  affiliateText: string;
+  difficulty: string;
+  readTime: string;
+}
 
-// Mock High-Ticket Affiliate SOPs data
-const mockSOPs = [
-  {
-    id: "hubspot-rate-limits",
-    title: "How to Bypass HubSpot CRM Sync Error 429 (Rate Limit Exceeded)",
-    description: "Learn how to build an active queue buffer using Make.com to throttle payload bursts and avoid HubSpot API blocks.",
-    tools: ["Make.com", "HubSpot", "CRM"],
-    affiliateLink: "https://www.make.com/en/register?pc=shivamautomations", // Example affiliate format
-    affiliateText: "Try Make.com for Free",
-    difficulty: "Intermediate",
-    readTime: "6 min read"
-  },
-  {
-    id: "clay-lead-enrichment",
-    title: "Automating B2B Lead Enrichment Pipelines via Clay and OpenAI",
-    description: "A complete step-by-step SOP for scraping local records, enriching profiles via Clay, and syncing clean datasets to Salesforce.",
-    tools: ["Clay.com", "OpenAI", "Salesforce"],
-    affiliateLink: "https://clay.com/?via=shivam",
-    affiliateText: "Sign up on Clay",
-    difficulty: "Advanced",
-    readTime: "9 min read"
-  },
-  {
-    id: "webhook-failover",
-    title: "Building an Automated Webhook Failover Queue for Monday.com",
-    description: "Step-by-step documentation on deploying an automated retry pipeline when Monday.com boards fail to sync during peaks.",
-    tools: ["Monday.com", "ActiveCampaign", "Make"],
-    affiliateLink: "https://monday.com", 
-    affiliateText: "Automate Monday.com",
-    difficulty: "Advanced",
-    readTime: "7 min read"
+function getSOPs(): SOP[] {
+  const sopsDir = path.join(process.cwd(), "content", "sops");
+  if (!fs.existsSync(sopsDir)) {
+    return [];
   }
-];
+  
+  const files = fs.readdirSync(sopsDir);
+  return files
+    .filter(file => file.endsWith(".md"))
+    .map(file => {
+      const filePath = path.join(sopsDir, file);
+      const content = fs.readFileSync(filePath, "utf-8");
+      
+      const slug = file.replace(/\.md$/, "");
+      
+      // Parse Title
+      const titleMatch = content.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1].trim() : slug;
+      
+      // Parse Overview / Description
+      let description = "";
+      const overviewIndex = content.indexOf("## Overview");
+      if (overviewIndex !== -1) {
+        const afterOverview = content.substring(overviewIndex + "## Overview".length).trim();
+        const firstParagraph = afterOverview.split("\n\n")[0];
+        description = firstParagraph ? firstParagraph.trim() : "";
+      }
+      
+      description = description.replace(/[#*`_]/g, "");
+      if (description.length > 150) {
+        description = description.substring(0, 147) + "...";
+      }
+      
+      const tools = ["Make.com"];
+      if (slug.includes("jotform")) {
+        tools.push("Jotform");
+      }
+      if (slug.includes("arcgis")) {
+        tools.push("ArcGIS");
+        tools.push("API");
+      }
+      if (slug.includes("agentic")) {
+        tools.push("AI Agents");
+      }
+      
+      return {
+        id: slug,
+        title,
+        description,
+        tools,
+        affiliateLink: "/sops/" + slug,
+        affiliateText: "Read Step-by-Step SOP",
+        difficulty: slug.includes("arcgis") || slug.includes("agentic") ? "Advanced" : "Intermediate",
+        readTime: "5 min read"
+      };
+    });
+}
 
 export default function Home() {
+  const sops = getSOPs();
+
   return (
     <div className="flex-1 flex flex-col relative overflow-x-hidden">
       {/* Background decoration */}
@@ -173,44 +197,48 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {mockSOPs.map((sop) => (
-              <div 
-                key={sop.id} 
-                className="bg-slate-900/20 border border-white/5 hover:border-indigo-500/30 rounded-2xl p-6 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 backdrop-blur-md group"
-              >
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    {sop.tools.map((tool, i) => (
-                      <span 
-                        key={i} 
-                        className="text-[9px] font-mono px-2 py-0.5 rounded-full border border-white/10 bg-slate-950 text-slate-400 font-semibold"
-                      >
-                        {tool}
-                      </span>
-                    ))}
+          {sops.length === 0 ? (
+            <div className="bg-slate-900/10 border border-white/5 rounded-2xl p-8 text-center text-slate-400 font-mono text-xs">
+              No SOP integration templates found. Run the automation pipeline script to populate articles.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {sops.map((sop) => (
+                <div 
+                  key={sop.id} 
+                  className="bg-slate-900/20 border border-white/5 hover:border-indigo-500/30 rounded-2xl p-6 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 backdrop-blur-md group"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      {sop.tools.map((tool, i) => (
+                        <span 
+                          key={i} 
+                          className="text-[9px] font-mono px-2 py-0.5 rounded-full border border-white/10 bg-slate-950 text-slate-400 font-semibold"
+                        >
+                          {tool}
+                        </span>
+                      ))}
+                    </div>
+                    <h3 className="text-base font-bold text-slate-200 leading-snug group-hover:text-indigo-300 transition mb-3">
+                      {sop.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed mb-6">
+                      {sop.description}
+                    </p>
                   </div>
-                  <h3 className="text-base font-bold text-slate-200 leading-snug group-hover:text-indigo-300 transition mb-3">
-                    {sop.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-6">
-                    {sop.description}
-                  </p>
+                  <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
+                    <span className="text-[10px] text-slate-500 font-mono">{sop.difficulty}</span>
+                    <a 
+                      href={sop.affiliateLink}
+                      className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition"
+                    >
+                      {sop.affiliateText} <ArrowRight className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
-                  <span className="text-[10px] text-slate-500 font-mono">{sop.difficulty}</span>
-                  <a 
-                    href={sop.affiliateLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition"
-                  >
-                    {sop.affiliateText} <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* CTA Banner */}

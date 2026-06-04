@@ -32,8 +32,8 @@ export default async function SOPPage({ params }: PageProps) {
     markdown = markdown.replace(scriptRegex, "");
   }
 
-  // Remove "Professional Call-To-Action" section and everything after it since we render a custom visual CTA banner
-  const ctaIndex = markdown.search(/##\s+(Professional\s+)?Call-To-Action/i);
+  // Remove "Call-To-Action" or "Next Steps" section and everything after it since we render a custom visual CTA banner
+  const ctaIndex = markdown.search(/##\s+((Professional\s+)?Call-To-Action|Next\s+Steps)/i);
   if (ctaIndex !== -1) {
     markdown = markdown.substring(0, ctaIndex).trim();
   }

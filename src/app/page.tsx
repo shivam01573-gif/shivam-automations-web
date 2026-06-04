@@ -155,8 +155,8 @@ export default function Home() {
                 <p className="text-[10px] text-slate-400 uppercase mt-0.5">Automated Architecture</p>
               </div>
               <div>
-                <span className="text-2xl font-bold text-slate-200">0ms</span>
-                <p className="text-[10px] text-slate-400 uppercase mt-0.5">Cumulative Layout Shift</p>
+                <span className="text-2xl font-bold text-slate-200">99.9%</span>
+                <p className="text-[10px] text-slate-400 uppercase mt-0.5">Pipeline Uptime</p>
               </div>
               <div>
                 <span className="text-2xl font-bold text-slate-200">Free</span>

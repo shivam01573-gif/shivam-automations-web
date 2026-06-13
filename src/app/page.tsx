@@ -4,46 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, AlertTriangle, XCircle, Info } from "lucide-react";
 
-interface Appliance {
-  id: string;
-  name: string;
-  amps: number;
-}
-
-const APPLIANCES: Appliance[] = [
-  { id: "central_ac_3", name: "Central AC (3 ton)", amps: 20 },
-  { id: "central_ac_4", name: "Central AC (4 ton)", amps: 26 },
-  { id: "mini_split", name: "Mini Split AC", amps: 15 },
-  { id: "water_heater", name: "Electric Water Heater", amps: 25 },
-  { id: "dryer", name: "Electric Dryer", amps: 30 },
-  { id: "stove", name: "Electric Stove/Range", amps: 40 },
-  { id: "oven", name: "Electric Oven", amps: 20 },
-  { id: "microwave", name: "Microwave", amps: 12 },
-  { id: "refrigerator", name: "Refrigerator", amps: 6 },
-  { id: "dishwasher", name: "Dishwasher", amps: 12 },
-  { id: "washer", name: "Washing Machine", amps: 10 },
-  { id: "ev_32", name: "EV Charger Level 2 (32A)", amps: 32 },
-  { id: "ev_48", name: "EV Charger Level 2 (48A)", amps: 48 },
-  { id: "hot_tub", name: "Hot Tub / Jacuzzi", amps: 40 },
-  { id: "pool_pump", name: "Pool Pump", amps: 20 },
-  { id: "furnace", name: "Electric Furnace", amps: 60 },
-  { id: "heat_pump", name: "Heat Pump", amps: 15 },
-  { id: "baseboard", name: "Electric Baseboard Heater", amps: 15 },
-  { id: "garage", name: "Garage Door Opener", amps: 4 },
-  { id: "office", name: "Home Office Setup", amps: 8 },
-  { id: "pc", name: "Gaming PC Setup", amps: 10 },
-  { id: "freezer", name: "Chest Freezer", amps: 5 },
-  { id: "window_ac", name: "Window AC Unit", amps: 12 },
-];
-
 export default function Home() {
   const [panelSize, setPanelSize] = useState<100 | 200>(100);
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [applianceAmps, setApplianceAmps] = useState<Record<string, number>>(
-    APPLIANCES.reduce((acc, app) => ({ ...acc, [app.id]: app.amps }), {})
-  );
-  
   const [result, setResult] = useState<{
     totalAmps: number;
     safeLimit: number;
@@ -53,50 +15,49 @@ export default function Home() {
     showEVWarning: boolean;
   } | null>(null);
 
-  const handleCheckboxChange = (id: string) => {
-    setSelected(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
-
-  const handleIncrement = (id: string) => {
-    setQuantities(prev => ({
-      ...prev,
-      [id]: (prev[id] || 1) + 1
-    }));
-  };
-
-  const handleDecrement = (id: string) => {
-    setQuantities(prev => {
-      const current = prev[id] || 1;
-      if (current <= 1) return prev;
-      return {
-        ...prev,
-        [id]: current - 1
-      };
-    });
-  };
-
-  const handleAmpChange = (id: string, value: string) => {
-    const num = parseInt(value) || 0;
-    setApplianceAmps(prev => ({
-      ...prev,
-      [id]: num
-    }));
-  };
-
   const calculateLoad = () => {
     let total = 0;
     let hasEV = false;
 
-    APPLIANCES.forEach(app => {
-      if (selected[app.id]) {
-        const qty = quantities[app.id] || 1;
-        const baseAmps = applianceAmps[app.id] !== undefined ? applianceAmps[app.id] : app.amps;
-        total += baseAmps * qty;
-        if (app.id === "ev_32" || app.id === "ev_48") {
-          hasEV = true;
+    const applianceList = [
+      { id: "ac3ton", hasEV: false },
+      { id: "ac4ton", hasEV: false },
+      { id: "minisplit", hasEV: false },
+      { id: "waterheater", hasEV: false },
+      { id: "dryer", hasEV: false },
+      { id: "stove", hasEV: false },
+      { id: "oven", hasEV: false },
+      { id: "microwave", hasEV: false },
+      { id: "refrigerator", hasEV: false },
+      { id: "dishwasher", hasEV: false },
+      { id: "washer", hasEV: false },
+      { id: "ev32", hasEV: true },
+      { id: "ev48", hasEV: true },
+      { id: "hottub", hasEV: false },
+      { id: "poolpump", hasEV: false },
+      { id: "furnace", hasEV: false },
+      { id: "heatpump", hasEV: false },
+      { id: "baseboard", hasEV: false },
+      { id: "garage", hasEV: false },
+      { id: "office", hasEV: false },
+      { id: "pc", hasEV: false },
+      { id: "freezer", hasEV: false },
+      { id: "windowac", hasEV: false }
+    ];
+
+    applianceList.forEach(item => {
+      const checkbox = document.getElementById(item.id) as HTMLInputElement | null;
+      if (checkbox && checkbox.checked) {
+        const row = checkbox.closest(".appliance-row");
+        if (row) {
+          const numberInput = row.querySelector("input[type='number']") as HTMLInputElement | null;
+          if (numberInput) {
+            const amps = parseInt(numberInput.value) || 0;
+            total += amps;
+            if (item.hasEV) {
+              hasEV = true;
+            }
+          }
         }
       }
     });
@@ -230,71 +191,189 @@ export default function Home() {
             Select Your Appliances
           </label>
           <div className="flex flex-col border border-[#E5E7EB] rounded-xl overflow-hidden divide-y divide-[#F3F4F6]">
-            {APPLIANCES.map((app) => {
-              const isChecked = !!selected[app.id];
-              const qty = quantities[app.id] || 1;
-              return (
-                <div
-                  key={app.id}
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:px-6 gap-3 transition-all duration-150 hover:bg-[#F9FAFB] ${
-                    isChecked ? "bg-[#EFF6FF]" : "bg-white"
-                  }`}
-                >
-                  {/* Left: Checkbox + Name Label */}
-                  <label className="flex items-center gap-3.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleCheckboxChange(app.id)}
-                      className="sr-only"
-                    />
-                    <div className={`w-[18px] h-[18px] rounded border transition-all duration-150 flex items-center justify-center shrink-0 ${
-                      isChecked ? "bg-[#2563EB] border-[#2563EB]" : "border-[#C4C4C6]"
-                    }`}>
-                      {isChecked && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
-                    </div>
-                    <span className="text-[15px] font-medium text-[#374151]">
-                      {app.name}
-                    </span>
-                  </label>
-                  
-                  {/* Right: Quantity Adjuster + Amp Input (Outside label click area) */}
-                  <div className="flex items-center gap-4 ml-8 sm:ml-0">
-                    {/* Quantity Decrement/Increment Controls */}
-                    <div className="flex items-center border border-[#E5E7EB] rounded-lg bg-[#F9FAFB] overflow-hidden h-8">
-                      <button
-                        type="button"
-                        onClick={() => handleDecrement(app.id)}
-                        className="w-8 h-full flex items-center justify-center text-[#6B7280] hover:bg-neutral-200 transition-colors border-r border-[#E5E7EB] text-lg font-medium select-none"
-                      >
-                        -
-                      </button>
-                      <span className="px-3 text-[13px] font-semibold text-[#111827] min-w-[20px] text-center select-none">
-                        {qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleIncrement(app.id)}
-                        className="w-8 h-full flex items-center justify-center text-[#6B7280] hover:bg-neutral-200 transition-colors border-l border-[#E5E7EB] text-lg font-medium select-none"
-                      >
-                        +
-                      </button>
-                    </div>
+            {/* Central AC (3 ton) */}
+            <div className="appliance-row">
+              <input type="checkbox" id="ac3ton" />
+              <label htmlFor="ac3ton">Central AC (3 ton)</label>
+              <input type="number" defaultValue="20" min="1" max="200" />
+              <span>amps</span>
+            </div>
 
-                    {/* Amp Input Badge */}
-                    <div className="flex items-center gap-1 bg-[#F3F4F6] px-2.5 py-0.5 rounded-full border border-transparent focus-within:border-[#2563EB] focus-within:bg-white transition-all h-8">
-                      <input
-                        type="number"
-                        value={applianceAmps[app.id] ?? app.amps}
-                        onChange={(e) => handleAmpChange(app.id, e.target.value)}
-                        className="w-10 bg-transparent text-[#374151] font-semibold text-[13px] text-center focus:outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <span className="text-[11px] font-bold text-[#6B7280] uppercase select-none">A</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {/* Central AC (4 ton) */}
+            <div className="appliance-row">
+              <input type="checkbox" id="ac4ton" />
+              <label htmlFor="ac4ton">Central AC (4 ton)</label>
+              <input type="number" defaultValue="26" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Mini Split AC */}
+            <div className="appliance-row">
+              <input type="checkbox" id="minisplit" />
+              <label htmlFor="minisplit">Mini Split AC</label>
+              <input type="number" defaultValue="15" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Electric Water Heater */}
+            <div className="appliance-row">
+              <input type="checkbox" id="waterheater" />
+              <label htmlFor="waterheater">Electric Water Heater</label>
+              <input type="number" defaultValue="25" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Electric Dryer */}
+            <div className="appliance-row">
+              <input type="checkbox" id="dryer" />
+              <label htmlFor="dryer">Electric Dryer</label>
+              <input type="number" defaultValue="30" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Electric Stove/Range */}
+            <div className="appliance-row">
+              <input type="checkbox" id="stove" />
+              <label htmlFor="stove">Electric Stove/Range</label>
+              <input type="number" defaultValue="40" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Electric Oven */}
+            <div className="appliance-row">
+              <input type="checkbox" id="oven" />
+              <label htmlFor="oven">Electric Oven</label>
+              <input type="number" defaultValue="20" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Microwave */}
+            <div className="appliance-row">
+              <input type="checkbox" id="microwave" />
+              <label htmlFor="microwave">Microwave</label>
+              <input type="number" defaultValue="12" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Refrigerator */}
+            <div className="appliance-row">
+              <input type="checkbox" id="refrigerator" />
+              <label htmlFor="refrigerator">Refrigerator</label>
+              <input type="number" defaultValue="6" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Dishwasher */}
+            <div className="appliance-row">
+              <input type="checkbox" id="dishwasher" />
+              <label htmlFor="dishwasher">Dishwasher</label>
+              <input type="number" defaultValue="12" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Washing Machine */}
+            <div className="appliance-row">
+              <input type="checkbox" id="washer" />
+              <label htmlFor="washer">Washing Machine</label>
+              <input type="number" defaultValue="10" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* EV Charger Level 2 (32A) */}
+            <div className="appliance-row">
+              <input type="checkbox" id="ev32" />
+              <label htmlFor="ev32">EV Charger Level 2 (32A)</label>
+              <input type="number" defaultValue="32" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* EV Charger Level 2 (48A) */}
+            <div className="appliance-row">
+              <input type="checkbox" id="ev48" />
+              <label htmlFor="ev48">EV Charger Level 2 (48A)</label>
+              <input type="number" defaultValue="48" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Hot Tub / Jacuzzi */}
+            <div className="appliance-row">
+              <input type="checkbox" id="hottub" />
+              <label htmlFor="hottub">Hot Tub / Jacuzzi</label>
+              <input type="number" defaultValue="40" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Pool Pump */}
+            <div className="appliance-row">
+              <input type="checkbox" id="poolpump" />
+              <label htmlFor="poolpump">Pool Pump</label>
+              <input type="number" defaultValue="20" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Electric Furnace */}
+            <div className="appliance-row">
+              <input type="checkbox" id="furnace" />
+              <label htmlFor="furnace">Electric Furnace</label>
+              <input type="number" defaultValue="60" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Heat Pump */}
+            <div className="appliance-row">
+              <input type="checkbox" id="heatpump" />
+              <label htmlFor="heatpump">Heat Pump</label>
+              <input type="number" defaultValue="15" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Electric Baseboard Heater */}
+            <div className="appliance-row">
+              <input type="checkbox" id="baseboard" />
+              <label htmlFor="baseboard">Electric Baseboard Heater</label>
+              <input type="number" defaultValue="15" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Garage Door Opener */}
+            <div className="appliance-row">
+              <input type="checkbox" id="garage" />
+              <label htmlFor="garage">Garage Door Opener</label>
+              <input type="number" defaultValue="4" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Home Office Setup */}
+            <div className="appliance-row">
+              <input type="checkbox" id="office" />
+              <label htmlFor="office">Home Office Setup</label>
+              <input type="number" defaultValue="8" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Gaming PC Setup */}
+            <div className="appliance-row">
+              <input type="checkbox" id="pc" />
+              <label htmlFor="pc">Gaming PC Setup</label>
+              <input type="number" defaultValue="10" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Chest Freezer */}
+            <div className="appliance-row">
+              <input type="checkbox" id="freezer" />
+              <label htmlFor="freezer">Chest Freezer</label>
+              <input type="number" defaultValue="5" min="1" max="200" />
+              <span>amps</span>
+            </div>
+
+            {/* Window AC Unit */}
+            <div className="appliance-row">
+              <input type="checkbox" id="windowac" />
+              <label htmlFor="windowac">Window AC Unit</label>
+              <input type="number" defaultValue="12" min="1" max="200" />
+              <span>amps</span>
+            </div>
           </div>
         </div>
 

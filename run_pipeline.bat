@@ -1,5 +1,5 @@
 @echo off
-cd /d "d:\AI automation\affilate web"
+cd /d "C:\AI automation\affilate web"
 echo =================================================== >> pipeline_run.log
 echo Pipeline execution started at: %date% %time% >> pipeline_run.log
 py scripts/pipeline.py >> pipeline_run.log 2>&1

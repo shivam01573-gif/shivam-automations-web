@@ -1,279 +1,378 @@
-import React, { Suspense } from "react";
-import fs from "fs";
-import path from "path";
-import { 
-  ArrowRight, ShieldAlert, Cpu, Sparkles, CheckCircle2, 
-  ExternalLink, Layers, Terminal, Zap, BookOpen, AlertTriangle 
-} from "lucide-react";
-import PipelineSimulator from "@/components/PipelineSimulator";
-import SplineViewer from "@/components/SplineViewer";
+"use client";
 
-interface SOP {
+import React, { useState } from "react";
+import Link from "next/link";
+import { ArrowRight, Check, AlertTriangle, XCircle, Info } from "lucide-react";
+
+interface Appliance {
   id: string;
-  title: string;
-  description: string;
-  tools: string[];
-  affiliateLink: string;
-  affiliateText: string;
-  difficulty: string;
-  readTime: string;
+  name: string;
+  amps: number;
 }
 
-function getSOPs(): SOP[] {
-  const sopsDir = path.join(process.cwd(), "content", "sops");
-  if (!fs.existsSync(sopsDir)) {
-    return [];
-  }
-  
-  const files = fs.readdirSync(sopsDir);
-  return files
-    .filter(file => file.endsWith(".md"))
-    .map(file => {
-      const filePath = path.join(sopsDir, file);
-      const content = fs.readFileSync(filePath, "utf-8");
-      
-      const slug = file.replace(/\.md$/, "");
-      
-      // Parse Title
-      const titleMatch = content.match(/^#\s+(.+)$/m);
-      const title = titleMatch ? titleMatch[1].trim() : slug;
-      
-      // Parse Overview / Description
-      let description = "";
-      const overviewIndex = content.indexOf("## Overview");
-      if (overviewIndex !== -1) {
-        const afterOverview = content.substring(overviewIndex + "## Overview".length).trim();
-        const firstParagraph = afterOverview.split("\n\n")[0];
-        description = firstParagraph ? firstParagraph.trim() : "";
-      }
-      
-      description = description.replace(/[#*`_]/g, "");
-      if (description.length > 150) {
-        description = description.substring(0, 147) + "...";
-      }
-      
-      const tools = ["Make.com"];
-      if (slug.includes("jotform")) {
-        tools.push("Jotform");
-      }
-      if (slug.includes("arcgis")) {
-        tools.push("ArcGIS");
-        tools.push("API");
-      }
-      if (slug.includes("agentic")) {
-        tools.push("AI Agents");
-      }
-      
-      return {
-        id: slug,
-        title,
-        description,
-        tools,
-        affiliateLink: "/sops/" + slug,
-        affiliateText: "Read Step-by-Step SOP",
-        difficulty: slug.includes("arcgis") || slug.includes("agentic") ? "Advanced" : "Intermediate",
-        readTime: "5 min read"
-      };
-    });
-}
+const APPLIANCES: Appliance[] = [
+  { id: "central_ac_3", name: "Central AC (3 ton)", amps: 20 },
+  { id: "central_ac_4", name: "Central AC (4 ton)", amps: 26 },
+  { id: "mini_split", name: "Mini Split AC", amps: 15 },
+  { id: "water_heater", name: "Electric Water Heater", amps: 25 },
+  { id: "dryer", name: "Electric Dryer", amps: 30 },
+  { id: "stove", name: "Electric Stove/Range", amps: 40 },
+  { id: "oven", name: "Electric Oven", amps: 20 },
+  { id: "microwave", name: "Microwave", amps: 12 },
+  { id: "refrigerator", name: "Refrigerator", amps: 6 },
+  { id: "dishwasher", name: "Dishwasher", amps: 12 },
+  { id: "washer", name: "Washing Machine", amps: 10 },
+  { id: "ev_32", name: "EV Charger Level 2 (32A)", amps: 32 },
+  { id: "ev_48", name: "EV Charger Level 2 (48A)", amps: 48 },
+  { id: "hot_tub", name: "Hot Tub / Jacuzzi", amps: 40 },
+  { id: "pool_pump", name: "Pool Pump", amps: 20 },
+  { id: "furnace", name: "Electric Furnace", amps: 60 },
+  { id: "heat_pump", name: "Heat Pump", amps: 15 },
+  { id: "baseboard", name: "Electric Baseboard Heater", amps: 15 },
+  { id: "garage", name: "Garage Door Opener", amps: 4 },
+  { id: "office", name: "Home Office Setup", amps: 8 },
+  { id: "pc", name: "Gaming PC Setup", amps: 10 },
+  { id: "freezer", name: "Chest Freezer", amps: 5 },
+  { id: "window_ac", name: "Window AC Unit", amps: 12 },
+];
 
 export default function Home() {
-  const sops = getSOPs();
+  const [panelSize, setPanelSize] = useState<100 | 200>(100);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [applianceAmps, setApplianceAmps] = useState<Record<string, number>>(
+    APPLIANCES.reduce((acc, app) => ({ ...acc, [app.id]: app.amps }), {})
+  );
+  
+  const [result, setResult] = useState<{
+    totalAmps: number;
+    safeLimit: number;
+    headroom: number;
+    status: "green" | "yellow" | "red";
+    message: string;
+    showEVWarning: boolean;
+  } | null>(null);
+
+  const handleCheckboxChange = (id: string) => {
+    setSelected(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const handleAmpChange = (id: string, value: string) => {
+    const num = parseInt(value) || 0;
+    setApplianceAmps(prev => ({
+      ...prev,
+      [id]: num
+    }));
+  };
+
+  const calculateLoad = () => {
+    let total = 0;
+    let hasEV = false;
+
+    APPLIANCES.forEach(app => {
+      if (selected[app.id]) {
+        total += applianceAmps[app.id] || 0;
+        if (app.id === "ev_32" || app.id === "ev_48") {
+          hasEV = true;
+        }
+      }
+    });
+
+    const safeLimit = panelSize === 100 ? 80 : 160; // 80% NEC Rule
+    const capacityThreshold = panelSize; // 100 or 200
+    const ratio = total / capacityThreshold;
+
+    let status: "green" | "yellow" | "red" = "green";
+    let message = "";
+
+    if (total > safeLimit) {
+      status = "red";
+      message = "Your panel is overloaded. You need a panel upgrade before adding these appliances.";
+    } else if (ratio >= 0.7) {
+      status = "yellow";
+      message = "Your panel is near capacity. Adding more appliances is risky.";
+    } else {
+      status = "green";
+      message = "Your panel can handle this load safely.";
+    }
+
+    const headroom = safeLimit - total;
+    const showEVWarning = hasEV && panelSize === 100;
+
+    setResult({
+      totalAmps: total,
+      safeLimit,
+      headroom,
+      status,
+      message,
+      showEVWarning
+    });
+  };
+
+  // Structured Data FAQ
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is a safe electrical load for a 100 amp panel?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A 100 amp panel should not exceed 80 amps of continuous load per National Electrical Code (NEC) guidelines, which specify an 80% continuous load safety limit."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I add an EV charger to my existing panel?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It depends on your current electrical load. Use our calculator above to check your available capacity and headroom before adding an EV charger."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I know if my panel needs upgrading?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If your total load exceeds 80% of your panel's capacity, or if you want to add high-draw appliances like Level 2 EV chargers, heat pumps, or hot tubs, a panel upgrade is recommended."
+        }
+      }
+    ]
+  };
 
   return (
-    <div className="flex-1 flex flex-col relative overflow-x-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none"></div>
-      <div className="absolute top-[30%] left-[-10%] w-[500px] h-[500px] rounded-full bg-purple-500/5 blur-[120px] pointer-events-none"></div>
+    <div className="max-w-[760px] mx-auto px-6 md:px-10 py-16 flex flex-col gap-16">
+      
+      {/* Dynamic Title tags handled statically, Schema injected below */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
 
-      {/* Header */}
-      <header className="border-b border-white/5 bg-slate-950/60 backdrop-blur-md sticky top-0 z-50 transition">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">
-              shivam automations
-            </span>
-          </div>
-          <nav className="flex items-center gap-6">
-            <a href="#simulator" className="text-xs text-slate-400 hover:text-slate-200 transition">Simulator</a>
-            <a href="#sops" className="text-xs text-slate-400 hover:text-slate-200 transition">Integration SOPs</a>
-            <a 
-              href="https://www.make.com/en/register?pc=shivamautomations" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border border-indigo-500/20 rounded-lg transition"
-            >
-              Get Free Templates
-            </a>
-          </nav>
+      {/* Header / Hero */}
+      <section className="text-center flex flex-col items-center gap-4">
+        <span className="text-[12px] font-semibold uppercase tracking-widest text-[#2563EB]">
+          Free Tool
+        </span>
+        <h1 className="text-4xl md:text-5xl font-extrabold text-[#111827] tracking-tight leading-[1.1]">
+          Home Electrical Load Calculator
+        </h1>
+        <p className="text-[16px] md:text-[18px] text-[#6B7280] leading-relaxed max-w-[520px]">
+          Find out if your electrical panel can safely handle your appliances — including EV chargers, hot tubs, and air conditioning. Free, instant, no signup.
+        </p>
+        <div className="flex flex-wrap justify-center gap-4 mt-2 text-[13px] font-medium text-[#6B7280]">
+          <span className="flex items-center gap-1"><Check className="w-4 h-4 text-[#16A34A]" /> Free forever</span>
+          <span className="flex items-center gap-1"><Check className="w-4 h-4 text-[#16A34A]" /> No signup</span>
+          <span className="flex items-center gap-1"><Check className="w-4 h-4 text-[#16A34A]" /> NEC standard</span>
         </div>
-      </header>
+      </section>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 flex flex-col gap-20">
+      {/* Calculator Main Card */}
+      <section className="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.04)] flex flex-col gap-8">
         
-        {/* Hero Section */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="flex flex-col gap-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/25 bg-indigo-950/30 text-indigo-300 w-fit">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="text-[10px] uppercase font-mono tracking-wider font-semibold">Zero Integration Errors</span>
-            </div>
-            
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-100 tracking-tight leading-none">
-              Deploy Fault-Tolerant{" "}
-              <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                Data Pipelines
-              </span>
-            </h1>
-            
-            <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-xl">
-              Stop losing leads to rate-limit timeouts, API schema changes, and webhook failures. We build, document, and share step-by-step integrations that scale.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 mt-2">
-              <a 
-                href="#sops"
-                className="px-6 py-3 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-600/25"
-              >
-                Explore Integration SOPs <ArrowRight className="w-4 h-4" />
-              </a>
-              <a 
-                href="https://www.make.com/en/register?pc=shivamautomations"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3 text-xs font-semibold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl flex items-center justify-center gap-2 transition"
-              >
-                Try Make.com For Free <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-
-            {/* Micro stats banner */}
-            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-white/5 mt-4">
-              <div>
-                <span className="text-2xl font-bold text-slate-200">100%</span>
-                <p className="text-[10px] text-slate-400 uppercase mt-0.5">Automated Architecture</p>
-              </div>
-              <div>
-                <span className="text-2xl font-bold text-slate-200">99.9%</span>
-                <p className="text-[10px] text-slate-400 uppercase mt-0.5">Pipeline Uptime</p>
-              </div>
-              <div>
-                <span className="text-2xl font-bold text-slate-200">Free</span>
-                <p className="text-[10px] text-slate-400 uppercase mt-0.5">SOP & Code Access</p>
-              </div>
-            </div>
+        {/* Panel Size Selection */}
+        <div className="flex flex-col gap-3">
+          <label className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">
+            Your Panel Size
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <button
+              onClick={() => setPanelSize(100)}
+              className={`flex-1 h-12 rounded-lg font-semibold text-[15px] border transition-all duration-150 ${
+                panelSize === 100 
+                  ? "bg-[#2563EB] border-[#2563EB] text-white" 
+                  : "bg-[#F9FAFB] border-[#E5E7EB] text-[#374151] hover:bg-neutral-100"
+              }`}
+            >
+              100 Amp Panel
+            </button>
+            <button
+              onClick={() => setPanelSize(200)}
+              className={`flex-1 h-12 rounded-lg font-semibold text-[15px] border transition-all duration-150 ${
+                panelSize === 200 
+                  ? "bg-[#2563EB] border-[#2563EB] text-white" 
+                  : "bg-[#F9FAFB] border-[#E5E7EB] text-[#374151] hover:bg-neutral-100"
+              }`}
+            >
+              200 Amp Panel
+            </button>
           </div>
+        </div>
 
-          {/* 3D Spline Container */}
-          <div className="relative">
-            <SplineViewer />
-          </div>
-        </section>
+        <div className="border-t border-[#F3F4F6] w-full"></div>
 
-        {/* Pipeline Simulator Section */}
-        <section id="simulator" className="flex flex-col gap-6">
-          <div className="max-w-2xl">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-              <Layers className="w-6 h-6 text-indigo-400" /> Interactive Pipeline Sandbox
-            </h2>
-            <p className="text-sm text-slate-400 mt-2">
-              Test data anomalies, simulation payloads, and automated repair triggers in our visual simulator.
-            </p>
-          </div>
-          <PipelineSimulator />
-        </section>
-
-        {/* SOP Article Grid */}
-        <section id="sops" className="flex flex-col gap-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/5 pb-6">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-                <BookOpen className="w-6 h-6 text-purple-400" /> API Integration SOPs
-              </h2>
-              <p className="text-sm text-slate-400 mt-2">
-                Step-by-step blueprints to configure, monitor, and debug complex multi-app data sync pipelines.
-              </p>
-            </div>
-          </div>
-
-          {sops.length === 0 ? (
-            <div className="bg-slate-900/10 border border-white/5 rounded-2xl p-8 text-center text-slate-400 font-mono text-xs">
-              No SOP integration templates found. Run the automation pipeline script to populate articles.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {sops.map((sop) => (
-                <div 
-                  key={sop.id} 
-                  className="bg-slate-900/20 border border-white/5 hover:border-indigo-500/30 rounded-2xl p-6 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 backdrop-blur-md group"
+        {/* Appliances Checklist */}
+        <div className="flex flex-col gap-4">
+          <label className="text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">
+            Select Your Appliances
+          </label>
+          <div className="flex flex-col border border-[#E5E7EB] rounded-xl overflow-hidden divide-y divide-[#F3F4F6]">
+            {APPLIANCES.map((app) => {
+              const isChecked = !!selected[app.id];
+              const currentAmps = applianceAmps[app.id];
+              return (
+                <div
+                  key={app.id}
+                  className={`flex items-center justify-between p-3.5 sm:px-6 transition-all duration-150 hover:bg-[#F9FAFB] ${
+                    isChecked ? "bg-[#EFF6FF]" : "bg-white"
+                  }`}
                 >
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      {sop.tools.map((tool, i) => (
-                        <span 
-                          key={i} 
-                          className="text-[9px] font-mono px-2 py-0.5 rounded-full border border-white/10 bg-slate-950 text-slate-400 font-semibold"
-                        >
-                          {tool}
-                        </span>
-                      ))}
+                  <label className="flex items-center gap-3.5 cursor-pointer flex-1 py-1">
+                    {/* Checkbox */}
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleCheckboxChange(app.id)}
+                        className="sr-only"
+                      />
+                      <div className={`w-[18px] h-[18px] rounded border transition-all duration-150 flex items-center justify-center ${
+                        isChecked ? "bg-[#2563EB] border-[#2563EB]" : "border-[#C4C4C6]"
+                      }`}>
+                        {isChecked && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
+                      </div>
                     </div>
-                    <h3 className="text-base font-bold text-slate-200 leading-snug group-hover:text-indigo-300 transition mb-3">
-                      {sop.title}
-                    </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed mb-6">
-                      {sop.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
-                    <span className="text-[10px] text-slate-500 font-mono">{sop.difficulty}</span>
-                    <a 
-                      href={sop.affiliateLink}
-                      className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition"
-                    >
-                      {sop.affiliateText} <ArrowRight className="w-3 h-3" />
-                    </a>
+                    {/* Name */}
+                    <span className="text-[15px] font-medium text-[#374151] select-none">
+                      {app.name}
+                    </span>
+                  </label>
+                  
+                  {/* Amps Value (Input) */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={currentAmps}
+                      onChange={(e) => handleAmpChange(app.id, e.target.value)}
+                      className="w-14 h-8 text-center bg-[#F3F4F6] text-[#374151] font-semibold text-[13px] border border-transparent rounded-full focus:outline-none focus:border-[#2563EB] focus:bg-white"
+                    />
+                    <span className="text-[11px] font-bold text-[#9CA3AF] uppercase">Amps</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* CTA Banner */}
-        <section className="bg-gradient-to-r from-indigo-950/20 to-purple-950/20 border border-indigo-500/10 rounded-3xl p-8 sm:p-12 relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-8">
-          <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none"></div>
-          <div className="flex flex-col gap-3 relative z-10 max-w-xl">
-            <h3 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight">Ready to build your next automation workflow?</h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              Join thousands of operations managers leveraging no-code integration templates. Get started with Make.com today for free.
-            </p>
-          </div>
-          <div className="shrink-0 relative z-10 w-full sm:w-auto">
-            <a 
-              href="https://www.make.com/en/register?pc=shivamautomations"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto px-6 py-3 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-600/20"
-            >
-              Start Automating Free <ArrowRight className="w-4 h-4" />
-            </a>
-          </div>
-        </section>
-
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-slate-950 py-8 mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-xs font-mono">
-          <span>&copy; {new Date().getFullYear()} shivam automations. All rights reserved.</span>
-          <div className="flex gap-4">
-            <a href="https://www.make.com/en/register?pc=shivamautomations" className="hover:text-slate-400">Make.com Affiliate Partner</a>
-            <span>•</span>
-            <a href={`mailto:shivam01573@gmail.com`} className="hover:text-slate-400">Contact Support</a>
+              );
+            })}
           </div>
         </div>
+
+        {/* Action Button */}
+        <button
+          onClick={calculateLoad}
+          className="w-full h-[52px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-[16px] rounded-xl transition-all duration-150 active:translate-y-[0px] hover:-translate-y-[1px] shadow-sm flex items-center justify-center"
+        >
+          Calculate My Panel Load
+        </button>
+
+        {/* Results Card */}
+        {result && (
+          <div className={`animate-fade-in-up border rounded-xl p-6 border-l-4 transition-all duration-300 ${
+            result.status === "green" 
+              ? "bg-[#F0FDF4] border-[#BBF7D0] border-l-[#16A34A]" 
+              : result.status === "yellow"
+              ? "bg-[#FFFBEB] border-[#FDE68A] border-l-[#D97706]"
+              : "bg-[#FEF2F2] border-[#FECACA] border-l-[#DC2626]"
+          }`}>
+            <div className="flex items-start gap-2.5 mb-5">
+              {result.status === "green" && <Check className="w-5.5 h-5.5 text-[#16A34A] shrink-0 mt-0.5" />}
+              {result.status === "yellow" && <AlertTriangle className="w-5.5 h-5.5 text-[#D97706] shrink-0 mt-0.5" />}
+              {result.status === "red" && <XCircle className="w-5.5 h-5.5 text-[#DC2626] shrink-0 mt-0.5" />}
+              <div>
+                <h3 className={`text-[18px] font-semibold leading-snug ${
+                  result.status === "green" 
+                    ? "text-[#15803D]" 
+                    : result.status === "yellow"
+                    ? "text-[#92400E]"
+                    : "text-[#991B1B]"
+                }`}>
+                  {result.status === "green" && "Your Panel Can Handle This Load"}
+                  {result.status === "yellow" && "Your Panel Is Near Capacity"}
+                  {result.status === "red" && "Your Panel Is Overloaded"}
+                </h3>
+                <p className="text-[14px] text-[#6B7280] mt-1">{result.message}</p>
+              </div>
+            </div>
+
+            {/* Stat Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white border border-[#E5E7EB] rounded-lg p-3.5 flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Total Load</span>
+                <span className="text-2xl font-bold text-[#111827]">{result.totalAmps} A</span>
+              </div>
+              <div className="bg-white border border-[#E5E7EB] rounded-lg p-3.5 flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Safe Limit</span>
+                <span className="text-2xl font-bold text-[#111827]">{result.safeLimit} A</span>
+              </div>
+              <div className="bg-white border border-[#E5E7EB] rounded-lg p-3.5 flex flex-col gap-1">
+                <span className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">Headroom</span>
+                <span className={`text-2xl font-bold ${result.headroom < 0 ? "text-[#DC2626]" : "text-[#111827]"}`}>
+                  {result.headroom} A
+                </span>
+              </div>
+            </div>
+
+            {/* EV Charger Alert */}
+            {result.showEVWarning && (
+              <div className="mt-5 p-4 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex gap-2.5 text-[14px] text-[#1D4ED8] leading-relaxed">
+                <Info className="w-5 h-5 shrink-0 text-[#2563EB] mt-0.5" />
+                <span>
+                  <strong>EV Charger Warning:</strong> Most 100 amp panels cannot safely support a Level 2 EV charger along with standard home appliances. Consider upgrading to a 200 amp panel or deploying an active load management system.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Quote Call-To-Action (Affiliate Placeholder) */}
+      <section className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-2xl p-6 md:p-8 text-center flex flex-col items-center gap-4">
+        <h3 className="text-[20px] font-bold text-[#111827]">
+          Need a panel upgrade? Get free quotes from licensed electricians near you.
+        </h3>
+        <p className="text-[14px] text-[#6B7280] leading-relaxed max-w-[480px]">
+          Compare rates from trusted local electrical contractors. Safe, fast, and completely free service.
+        </p>
+        <a 
+          href="https://shivam-automations-web.vercel.app/quotes-placeholder" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-full transition-colors duration-150"
+        >
+          Get Free Local Quotes <ArrowRight className="w-4 h-4" />
+        </a>
+      </section>
+
+      {/* SEO Articles Links (Internal Linking) */}
+      <section className="flex flex-col gap-6">
+        <h2 className="text-[24px] font-bold text-[#111827] border-b border-[#E5E7EB] pb-3">
+          Educational Guides & Resources
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link href="/how-to-read-your-electrical-panel" className="bg-[#F9FAFB] border border-[#E5E7EB] hover:border-[#2563EB] p-5 rounded-xl transition-all duration-150 flex flex-col gap-2">
+            <h4 className="font-semibold text-[16px] text-[#111827]">How to Read Your Electrical Panel</h4>
+            <p className="text-xs text-[#6B7280] leading-relaxed">Understand how to check your panel rating, breaker types, and identify upgrade warning signs.</p>
+          </Link>
+          <Link href="/can-i-add-ev-charger-to-100-amp-panel" className="bg-[#F9FAFB] border border-[#E5E7EB] hover:border-[#2563EB] p-5 rounded-xl transition-all duration-150 flex flex-col gap-2">
+            <h4 className="font-semibold text-[16px] text-[#111827]">EV Chargers on 100 Amp Panels</h4>
+            <p className="text-xs text-[#6B7280] leading-relaxed">Can your 100 amp service safely support a Level 2 EV charging station? Discover your choices.</p>
+          </Link>
+          <Link href="/200-amp-panel-capacity" className="bg-[#F9FAFB] border border-[#E5E7EB] hover:border-[#2563EB] p-5 rounded-xl transition-all duration-150 flex flex-col gap-2">
+            <h4 className="font-semibold text-[16px] text-[#111827]">200 Amp Panel Capacity Guide</h4>
+            <p className="text-xs text-[#6B7280] leading-relaxed">A complete appliance mapping chart detailing exactly what a 200A panel can handle.</p>
+          </Link>
+          <Link href="/signs-you-need-panel-upgrade" className="bg-[#F9FAFB] border border-[#E5E7EB] hover:border-[#2563EB] p-5 rounded-xl transition-all duration-150 flex flex-col gap-2">
+            <h4 className="font-semibold text-[16px] text-[#111827]">7 Signs You Need an Upgrade</h4>
+            <p className="text-xs text-[#6B7280] leading-relaxed">Flickering lights? Warm panel box? Check these critical warning signs immediately.</p>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[#E5E7EB] pt-8 text-center text-[13px] text-[#9CA3AF] leading-relaxed">
+        <p>
+          Disclaimer: This calculator provides estimates based on standard National Electrical Code (NEC) guidelines. Always consult a licensed electrician before making changes or adding high-power appliances to your home electrical system.
+        </p>
       </footer>
     </div>
   );

@@ -1,45 +1,20 @@
 import { MetadataRoute } from "next";
-import fs from "fs";
-import path from "path";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://shivam-automations-web.vercel.app";
   
-  // Base routes
-  const routes: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 1.0,
-    },
+  const pages = [
+    "",
+    "/how-to-read-your-electrical-panel",
+    "/can-i-add-ev-charger-to-100-amp-panel",
+    "/200-amp-panel-capacity",
+    "/signs-you-need-panel-upgrade",
   ];
-  
-  // Dynamic SOP routes
-  const sopsDir = path.join(process.cwd(), "content", "sops");
-  if (fs.existsSync(sopsDir)) {
-    const files = fs.readdirSync(sopsDir);
-    const sopRoutes = files
-      .filter((file) => file.endsWith(".md"))
-      .map((file) => {
-        const slug = file.replace(/\.md$/, "");
-        const filePath = path.join(sopsDir, file);
-        let mtime = new Date();
-        try {
-          const stats = fs.statSync(filePath);
-          mtime = stats.mtime;
-        } catch (e) {
-          // fallback
-        }
-        return {
-          url: `${baseUrl}/sops/${slug}`,
-          lastModified: mtime,
-          changeFrequency: "weekly" as const,
-          priority: 0.8,
-        };
-      });
-    routes.push(...sopRoutes);
-  }
-  
-  return routes;
+
+  return pages.map((page) => ({
+    url: `${baseUrl}${page}`,
+    lastModified: new Date(),
+    changeFrequency: page === "" ? "daily" : "weekly",
+    priority: page === "" ? 1.0 : 0.8,
+  }));
 }

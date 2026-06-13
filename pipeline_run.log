@@ -1,0 +1,8 @@
+=================================================== 
+Pipeline execution started at: 13-06-2026  9:04:42.75 
+Traceback (most recent call last):
+  File "C:\AI automation\affilate web\scripts\pipeline.py", line 8, in <module>
+    from tenacity import retry, wait_exponential, stop_after_attempt
+ModuleNotFoundError: No module named 'tenacity'
+Pipeline execution finished at: 13-06-2026  9:04:43.90 
+=================================================== 

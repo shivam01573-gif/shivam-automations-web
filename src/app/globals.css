@@ -1,19 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #020617;
-  --foreground: #f1f5f9;
+  --background: #ffffff;
+  --foreground: #111827;
+  --font-inter: var(--font-inter);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  letter-spacing: -0.011em;
 }
 
+/* Custom smooth transitions */
+.transition-all-custom {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out forwards;
+}

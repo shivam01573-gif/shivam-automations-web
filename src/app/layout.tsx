@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
-  title: "shivam automations | B2B API Integration & Data-Sync Solutions",
-  description: "Stop wasting engineering hours. Resolve HubSpot, Make.com, and CRM integration errors with our step-by-step B2B automation SOPs and templates.",
-  keywords: ["make.com", "hubspot API", "salesforce integration", "data sync", "B2B automation", "SOP", "API errors"],
+  title: {
+    default: "Home Electrical Load Calculator",
+    template: "%s | Home Electrical Load Calculator",
+  },
+  description: "Find out if your electrical panel can handle your appliances, EV charger, hot tub, and more. Free, instant, no signup.",
+  metadataBase: new URL("https://shivam-automations-web.vercel.app"),
 };
 
 export default function RootLayout({
@@ -24,11 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark scroll-smooth">
-      <head>
-        <meta name="impact-site-verification" {...({ value: "6b4d9bd4-3824-4dfd-979e-738919ccb40c" } as any)} />
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-indigo-500 selection:text-white`}>
+    <html lang="en" className="scroll-smooth">
+      <body className={`${inter.variable} font-sans bg-white text-[#111827] min-h-screen antialiased`}>
         {children}
       </body>
     </html>

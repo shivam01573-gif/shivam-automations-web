@@ -73,7 +73,9 @@ export default function Home() {
 
     APPLIANCES.forEach(app => {
       if (selected[app.id]) {
-        total += applianceAmps[app.id] || 0;
+        // Fallback to app.amps if the user cleared the field
+        const val = applianceAmps[app.id] !== undefined ? applianceAmps[app.id] : app.amps;
+        total += val;
         if (app.id === "ev_32" || app.id === "ev_48") {
           hasEV = true;
         }
@@ -146,7 +148,6 @@ export default function Home() {
   return (
     <div className="max-w-[760px] mx-auto px-6 md:px-10 py-16 flex flex-col gap-16">
       
-      {/* Dynamic Title tags handled statically, Schema injected below */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
@@ -212,7 +213,6 @@ export default function Home() {
           <div className="flex flex-col border border-[#E5E7EB] rounded-xl overflow-hidden divide-y divide-[#F3F4F6]">
             {APPLIANCES.map((app) => {
               const isChecked = !!selected[app.id];
-              const currentAmps = applianceAmps[app.id];
               return (
                 <div
                   key={app.id}
@@ -220,9 +220,9 @@ export default function Home() {
                     isChecked ? "bg-[#EFF6FF]" : "bg-white"
                   }`}
                 >
-                  <label className="flex items-center gap-3.5 cursor-pointer flex-1 py-1">
-                    {/* Checkbox */}
-                    <div className="relative flex items-center justify-center">
+                  <div className="flex items-center gap-3.5 flex-1">
+                    {/* Checkbox + Name Label */}
+                    <label className="flex items-center gap-3.5 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -234,22 +234,21 @@ export default function Home() {
                       }`}>
                         {isChecked && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
                       </div>
+                      <span className="text-[15px] font-medium text-[#374151]">
+                        {app.name}
+                      </span>
+                    </label>
+                    
+                    {/* Amp Input Styled as a Pill/Badge - Sibling to Label to prevent clicking it toggling the checkbox */}
+                    <div className="flex items-center gap-1 bg-[#F3F4F6] px-2.5 py-0.5 rounded-full border border-transparent focus-within:border-[#2563EB] focus-within:bg-white transition-all">
+                      <input
+                        type="number"
+                        value={applianceAmps[app.id] ?? app.amps}
+                        onChange={(e) => handleAmpChange(app.id, e.target.value)}
+                        className="w-10 bg-transparent text-[#374151] font-semibold text-[13px] text-center focus:outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <span className="text-[11px] font-bold text-[#6B7280] uppercase select-none">A</span>
                     </div>
-                    {/* Name */}
-                    <span className="text-[15px] font-medium text-[#374151] select-none">
-                      {app.name}
-                    </span>
-                  </label>
-                  
-                  {/* Amps Value (Input) */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={currentAmps}
-                      onChange={(e) => handleAmpChange(app.id, e.target.value)}
-                      className="w-14 h-8 text-center bg-[#F3F4F6] text-[#374151] font-semibold text-[13px] border border-transparent rounded-full focus:outline-none focus:border-[#2563EB] focus:bg-white"
-                    />
-                    <span className="text-[11px] font-bold text-[#9CA3AF] uppercase">Amps</span>
                   </div>
                 </div>
               );
@@ -371,7 +370,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-[#E5E7EB] pt-8 text-center text-[13px] text-[#9CA3AF] leading-relaxed">
         <p>
-          Disclaimer: This calculator provides estimates based on standard National Electrical Code (NEC) guidelines. Always consult a licensed electrician before making changes or adding high-power appliances to your home electrical system.
+          Disclaimer: This calculator provides estimates based on standard National Electrical Code (NEC) guidelines. Always consult a licensed electrician before making changes to your home electrical system.
         </p>
       </footer>
     </div>

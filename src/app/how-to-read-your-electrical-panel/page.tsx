@@ -32,6 +32,16 @@ export default function ArticlePage() {
         <p>
           Every modern home relies on a steady flow of electrical power to run lights, appliances, heating, cooling, and electronic devices. But where does this power go, and how is it distributed safely throughout your house? The answer lies inside your electrical service panel—commonly known as the breaker box, fuse board, or load center.
         </p>
+
+        {/* Embedded Image */}
+        <div className="my-6 rounded-2xl overflow-hidden border border-[#E5E7EB] shadow-sm">
+          <img 
+            src="/images/electrical_panel.png" 
+            alt="Electrical Service Panel Box" 
+            className="w-full h-auto object-cover max-h-[360px]"
+          />
+        </div>
+
         <p>
           Understanding how to read and navigate your electrical panel is one of the most critical safety skills a homeowner can possess. Whether you are dealing with a tripped circuit breaker, planning to install a new high-power appliance (like a Level 2 EV charger or a hot tub), or trying to assess if your electrical service is sufficient, your panel box holds all the answers.
         </p>
@@ -80,7 +90,7 @@ export default function ArticlePage() {
         </p>
         <ol className="list-decimal list-inside pl-4 flex flex-col gap-2">
           <li><strong>Frequent Circuit Trips:</strong> If you trip a breaker every time you run the microwave and the coffee pot together, your circuits are overloaded.</li>
-          <li><strong>Flickering Lights:</strong> Dimming or flickering lights when large appliances kick on (like the AC or vacuum) indicate your electrical service is struggling to meet demand.</li>
+          <li><strong>Flickering or Dimming Lights:</strong> Dimming or flickering lights when large appliances kick on (like the AC or vacuum) indicate your electrical service is struggling to meet demand.</li>
           <li><strong>Warmth or Rust:</strong> The breaker box should be cool to the touch. Rust inside the panel door or water stains indicate moisture intrusion, which is extremely dangerous.</li>
           <li><strong>Outdated Brands (Federal Pacific or Zinsco):</strong> If your home has a panel made by Federal Pacific Electric (FPE), Zinsco, or Challenger, it must be replaced immediately. These brands are known to have high failure rates and may not trip during an overload.</li>
         </ol>

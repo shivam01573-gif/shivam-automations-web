@@ -39,6 +39,7 @@ const APPLIANCES: Appliance[] = [
 export default function Home() {
   const [panelSize, setPanelSize] = useState<100 | 200>(100);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [applianceAmps, setApplianceAmps] = useState<Record<string, number>>(
     APPLIANCES.reduce((acc, app) => ({ ...acc, [app.id]: app.amps }), {})
   );
@@ -59,6 +60,24 @@ export default function Home() {
     }));
   };
 
+  const handleIncrement = (id: string) => {
+    setQuantities(prev => ({
+      ...prev,
+      [id]: (prev[id] || 1) + 1
+    }));
+  };
+
+  const handleDecrement = (id: string) => {
+    setQuantities(prev => {
+      const current = prev[id] || 1;
+      if (current <= 1) return prev;
+      return {
+        ...prev,
+        [id]: current - 1
+      };
+    });
+  };
+
   const handleAmpChange = (id: string, value: string) => {
     const num = parseInt(value) || 0;
     setApplianceAmps(prev => ({
@@ -73,9 +92,9 @@ export default function Home() {
 
     APPLIANCES.forEach(app => {
       if (selected[app.id]) {
-        // Fallback to app.amps if the user cleared the field
-        const val = applianceAmps[app.id] !== undefined ? applianceAmps[app.id] : app.amps;
-        total += val;
+        const qty = quantities[app.id] || 1;
+        const baseAmps = applianceAmps[app.id] !== undefined ? applianceAmps[app.id] : app.amps;
+        total += baseAmps * qty;
         if (app.id === "ev_32" || app.id === "ev_48") {
           hasEV = true;
         }
@@ -213,34 +232,57 @@ export default function Home() {
           <div className="flex flex-col border border-[#E5E7EB] rounded-xl overflow-hidden divide-y divide-[#F3F4F6]">
             {APPLIANCES.map((app) => {
               const isChecked = !!selected[app.id];
+              const qty = quantities[app.id] || 1;
               return (
                 <div
                   key={app.id}
-                  className={`flex items-center justify-between p-3.5 sm:px-6 transition-all duration-150 hover:bg-[#F9FAFB] ${
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:px-6 gap-3 transition-all duration-150 hover:bg-[#F9FAFB] ${
                     isChecked ? "bg-[#EFF6FF]" : "bg-white"
                   }`}
                 >
-                  <div className="flex items-center gap-3.5 flex-1">
-                    {/* Checkbox + Name Label */}
-                    <label className="flex items-center gap-3.5 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleCheckboxChange(app.id)}
-                        className="sr-only"
-                      />
-                      <div className={`w-[18px] h-[18px] rounded border transition-all duration-150 flex items-center justify-center ${
-                        isChecked ? "bg-[#2563EB] border-[#2563EB]" : "border-[#C4C4C6]"
-                      }`}>
-                        {isChecked && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
-                      </div>
-                      <span className="text-[15px] font-medium text-[#374151]">
-                        {app.name}
+                  {/* Left: Checkbox + Name Label */}
+                  <label className="flex items-center gap-3.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => handleCheckboxChange(app.id)}
+                      className="sr-only"
+                    />
+                    <div className={`w-[18px] h-[18px] rounded border transition-all duration-150 flex items-center justify-center shrink-0 ${
+                      isChecked ? "bg-[#2563EB] border-[#2563EB]" : "border-[#C4C4C6]"
+                    }`}>
+                      {isChecked && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
+                    </div>
+                    <span className="text-[15px] font-medium text-[#374151]">
+                      {app.name}
+                    </span>
+                  </label>
+                  
+                  {/* Right: Quantity Adjuster + Amp Input (Outside label click area) */}
+                  <div className="flex items-center gap-4 ml-8 sm:ml-0">
+                    {/* Quantity Decrement/Increment Controls */}
+                    <div className="flex items-center border border-[#E5E7EB] rounded-lg bg-[#F9FAFB] overflow-hidden h-8">
+                      <button
+                        type="button"
+                        onClick={() => handleDecrement(app.id)}
+                        className="w-8 h-full flex items-center justify-center text-[#6B7280] hover:bg-neutral-200 transition-colors border-r border-[#E5E7EB] text-lg font-medium select-none"
+                      >
+                        -
+                      </button>
+                      <span className="px-3 text-[13px] font-semibold text-[#111827] min-w-[20px] text-center select-none">
+                        {qty}
                       </span>
-                    </label>
-                    
-                    {/* Amp Input Styled as a Pill/Badge - Sibling to Label to prevent clicking it toggling the checkbox */}
-                    <div className="flex items-center gap-1 bg-[#F3F4F6] px-2.5 py-0.5 rounded-full border border-transparent focus-within:border-[#2563EB] focus-within:bg-white transition-all">
+                      <button
+                        type="button"
+                        onClick={() => handleIncrement(app.id)}
+                        className="w-8 h-full flex items-center justify-center text-[#6B7280] hover:bg-neutral-200 transition-colors border-l border-[#E5E7EB] text-lg font-medium select-none"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Amp Input Badge */}
+                    <div className="flex items-center gap-1 bg-[#F3F4F6] px-2.5 py-0.5 rounded-full border border-transparent focus-within:border-[#2563EB] focus-within:bg-white transition-all h-8">
                       <input
                         type="number"
                         value={applianceAmps[app.id] ?? app.amps}

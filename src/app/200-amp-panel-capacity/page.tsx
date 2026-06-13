@@ -32,6 +32,16 @@ export default function ArticlePage() {
         <p>
           A 200-amp electrical panel is the modern standard for new home construction and major electrical renovations. With the push toward home electrification—incorporating electric vehicle (EV) charging, heat pumps, induction stoves, and hot tubs—older 100-amp panels are quickly reaching their limits.
         </p>
+
+        {/* Embedded Image */}
+        <div className="my-6 rounded-2xl overflow-hidden border border-[#E5E7EB] shadow-sm">
+          <img 
+            src="/images/home_appliances.png" 
+            alt="Modern Home Kitchen Appliances" 
+            className="w-full h-auto object-cover max-h-[360px]"
+          />
+        </div>
+
         <p>
           But what exactly does a 200-amp panel allow you to run? Does upgrading your electrical service guarantee that you can add any appliance you want without overloaded breakers?
         </p>

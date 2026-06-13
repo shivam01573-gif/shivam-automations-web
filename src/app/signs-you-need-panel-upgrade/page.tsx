@@ -32,6 +32,16 @@ export default function ArticlePage() {
         <p>
           Your electrical panel is the unsung hero of your home. It works silently in the background, distributing electricity to your outlets, appliances, and fixtures while protecting your family from electrical fires. However, like any mechanical or electrical system, panels age, degrade, and eventually become obsolete.
         </p>
+
+        {/* Embedded Image */}
+        <div className="my-6 rounded-2xl overflow-hidden border border-[#E5E7EB] shadow-sm">
+          <img 
+            src="/images/outdated_panel.png" 
+            alt="Outdated Rusted Electrical Panel Box" 
+            className="w-full h-auto object-cover max-h-[360px]"
+          />
+        </div>
+
         <p>
           With our modern homes drawing more power than ever due to multiple TVs, computers, air conditioners, and now electric vehicle chargers, an old or faulty panel box is a major hazard. Here are the 7 warning signs that it is time to upgrade your home service panel.
         </p>

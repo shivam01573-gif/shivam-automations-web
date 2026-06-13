@@ -32,6 +32,16 @@ export default function ArticlePage() {
         <p>
           As electric vehicles (EVs) become mainstream, one of the first questions new owners face is: "How will I charge it at home?" While a standard 120-volt household outlet (Level 1 charging) can add about 3 to 5 miles of range per hour, most EV owners prefer to install a 240-volt Level 2 charging station, which charges 6 to 10 times faster.
         </p>
+
+        {/* Embedded Image */}
+        <div className="my-6 rounded-2xl overflow-hidden border border-[#E5E7EB] shadow-sm">
+          <img 
+            src="/images/ev_charging.png" 
+            alt="Level 2 EV Charging Station" 
+            className="w-full h-auto object-cover max-h-[360px]"
+          />
+        </div>
+
         <p>
           However, installing a Level 2 charger requires a dedicated 240-volt circuit box that pulls significant current—often between 32 to 48 amps. If your home has an older 100-amp electrical panel, you might wonder if your system can safely handle this load without overloading the main breaker.
         </p>
